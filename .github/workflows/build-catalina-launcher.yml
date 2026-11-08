@@ -47,21 +47,20 @@ jobs:
         run: cargo build --release --locked --features gpui_platform/runtime_shaders
 
       - name: The macOS 10.15 SDK's symbol lists
+        # Downloaded as one file; symcheck.py reads it directly (macOS's tar has no --wildcards).
         run: |
-          mkdir sdk
           curl -fsSL -o sdk.tar.xz https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.15.sdk.tar.xz
-          tar -xJf sdk.tar.xz -C sdk --wildcards 'MacOSX10.15.sdk/System/Library/Frameworks/*.tbd' 'MacOSX10.15.sdk/usr/lib/*.tbd' || true
-          find sdk -name '*.tbd' | wc -l
+          ls -la sdk.tar.xz
           pip3 install --break-system-packages --quiet lief || pip3 install --quiet lief
 
       - name: Gate - the launcher loads on 10.15
-        run: python3 symcheck.py sdk src/launcher/target/release/horizon-launcher
+        run: python3 symcheck.py sdk.tar.xz src/launcher/target/release/horizon-launcher
 
       - name: The game's prebuilt programs, checked the same way
         run: |
           curl -fsSL -o horizon-macos-x64.zip https://github.com/horizon-rust/horizon/releases/download/nightly/horizon-macos-x64.zip
           mkdir game && unzip -q horizon-macos-x64.zip -d game
-          python3 symcheck.py sdk game/horizon-macos-x64/horizon-client game/horizon-macos-x64/horizon-ctl \
+          python3 symcheck.py sdk.tar.xz game/horizon-macos-x64/horizon-client game/horizon-macos-x64/horizon-ctl \
             game/horizon-macos-x64/horizon-server game/horizon-macos-x64/horizon-prepare
 
       - name: Package Horizon.app as .dmg and .zip
